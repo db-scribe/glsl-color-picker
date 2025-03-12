@@ -8,16 +8,51 @@ The GLSL Color Picker is a Visual Studio Code extension that provides a color pi
 - Provides a color picker to edit these colors.
 - Clamps color values to the 0-1 range as required by GLSL.
 
-## Extension Settings
+## Building the Extension
 
-This extension does not add any VS Code settings.
+To build the extension, run the following commands:
 
-## Known Issues
+```sh
+npm install
+npm run compile
+```
 
-- None at the moment.
+## Testing the Extension
 
-## Release Notes
+To run the tests, use the following command:
 
-### 0.0.1
+```sh
+npm test
+```
 
-- Initial release of GLSL Color Picker.
+## Installing the Extension
+
+To install the extension, follow these steps:
+
+1. Open Visual Studio Code.
+2. Go to the Extensions view by clicking on the Extensions icon in the Activity Bar on the side of the window.
+3. Search for "GLSL Color Picker".
+4. Click "Install" to install the extension.
+
+## Manual VSIX Creation and Installation
+
+To manually create and install the VSIX package:
+
+1. Create the VSIX package:
+
+    ```sh
+    npx vsce package
+    ```
+
+    or
+
+    ```sh
+    npm install -g vsce
+    vsce package
+    ```
+
+2. Install the VSIX package:
+    1. Open Visual Studio Code.
+    2. Go to the Extensions view by clicking on the Extensions icon in the Activity Bar on the side of the window.
+    3. Click on the three-dot menu in the top-right corner and select "Install from VSIX...".
+    4. Select the generated `.vsix` file to install the extension.
