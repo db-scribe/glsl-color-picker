@@ -3,6 +3,10 @@
   "displayName": "glsl-color-picker",
   "description": "",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/db-scribe/glsl-color-picker.git"
+  },
   "engines": {
     "vscode": "^1.98.0"
   },
