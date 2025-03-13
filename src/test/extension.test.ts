@@ -26,7 +26,7 @@ suite('Color Provider Tests', () => {
         assert.ok(capturedProvider, 'Color provider should be captured');
     });
 
-    test('provideDocumentColors finds and parses valid colors', () => {
+    test('provideDocumentColors finds and parses valid vec colors', () => {
         const content = `
             // Valid colors
             vec3(0.5, 0.5, 0.5)
@@ -71,7 +71,93 @@ suite('Color Provider Tests', () => {
         assert.strictEqual(color3.alpha, 1.0);
     });
 
-    test('provideColorPresentations returns correct presentation for vec3', () => {
+    test('provideDocumentColors finds and parses hex colors', () => {
+        const content = `
+            // Hex RGB format
+            #F90
+            // Hex RGBA format
+            #F90F
+            // Hex RRGGBB format
+            #FF9900
+            // Hex RRGGBBAA format
+            #FF9900FF
+        `;
+        
+        const dummyDocument = {
+            getText: () => content,
+            positionAt: (offset: number) => new vscode.Position(0, offset)
+        } as unknown as vscode.TextDocument;
+        
+        const token = new vscode.CancellationTokenSource().token;
+        const result = capturedProvider.provideDocumentColors(dummyDocument, token);
+        const colors = result as vscode.ColorInformation[];
+        
+        assert.strictEqual(colors.length, 4, 'Expected four hex color matches');
+
+        // Verify #F90 (RGB)
+        const color1 = colors[0].color;
+        assert.strictEqual(color1.red, 255/255);
+        assert.strictEqual(color1.green, 153/255);
+        assert.strictEqual(color1.blue, 0/255);
+        assert.strictEqual(color1.alpha, 1.0);
+
+        // Verify #F90F (RGBA)
+        const color2 = colors[1].color;
+        assert.strictEqual(color2.red, 255/255);
+        assert.strictEqual(color2.green, 153/255);
+        assert.strictEqual(color2.blue, 0/255);
+        assert.strictEqual(color2.alpha, 255/255);
+
+        // Verify #FF9900 (RRGGBB)
+        const color3 = colors[2].color;
+        assert.strictEqual(color3.red, 255/255);
+        assert.strictEqual(color3.green, 153/255);
+        assert.strictEqual(color3.blue, 0/255);
+        assert.strictEqual(color3.alpha, 1.0);
+
+        // Verify #FF9900FF (RRGGBBAA)
+        const color4 = colors[3].color;
+        assert.strictEqual(color4.red, 255/255);
+        assert.strictEqual(color4.green, 153/255);
+        assert.strictEqual(color4.blue, 0/255);
+        assert.strictEqual(color4.alpha, 255/255);
+    });
+
+    test('provideDocumentColors finds and parses RGB/RGBA colors', () => {
+        const content = `
+            // RGB format
+            rgb(255, 153, 0)
+            // RGBA format
+            rgba(255, 153, 0, 0.5)
+        `;
+        
+        const dummyDocument = {
+            getText: () => content,
+            positionAt: (offset: number) => new vscode.Position(0, offset)
+        } as unknown as vscode.TextDocument;
+        
+        const token = new vscode.CancellationTokenSource().token;
+        const result = capturedProvider.provideDocumentColors(dummyDocument, token);
+        const colors = result as vscode.ColorInformation[];
+        
+        assert.strictEqual(colors.length, 2, 'Expected two RGB/RGBA color matches');
+
+        // Verify rgb(255, 153, 0)
+        const color1 = colors[0].color;
+        assert.strictEqual(color1.red, 255/255);
+        assert.strictEqual(color1.green, 153/255);
+        assert.strictEqual(color1.blue, 0/255);
+        assert.strictEqual(color1.alpha, 1.0);
+
+        // Verify rgba(255, 153, 0, 0.5)
+        const color2 = colors[1].color;
+        assert.strictEqual(color2.red, 255/255);
+        assert.strictEqual(color2.green, 153/255);
+        assert.strictEqual(color2.blue, 0/255);
+        assert.strictEqual(color2.alpha, 0.5);
+    });
+
+    test('provideColorPresentations provides multiple format options for vec3', () => {
         // Create a dummy document where getText returns text starting with "vec3".
         const dummyDocument = {
             getText: (range: vscode.Range) => "vec3(0.5, 0.5, 0.5)"
@@ -84,30 +170,79 @@ suite('Color Provider Tests', () => {
         const token = new vscode.CancellationTokenSource().token;
         const result = capturedProvider.provideColorPresentations(color, context, token);
         const presentations = result as vscode.ColorPresentation[];
-        assert.strictEqual(presentations.length, 1, 'Expected one color presentation');
-        // Expect the string to be formatted as a vec3 with 3 decimal places.
+        
+        // Should have multiple format options, including the original
+        assert.ok(presentations.length > 1, 'Expected multiple color presentations');
+        
+        // The first presentation should keep the original vec3 format
         assert.strictEqual(presentations[0].label, "vec3(0.500, 0.500, 0.500)");
+        
+        // Check that we have different format options (at least vec4, hex, and rgb)
+        const hasVec4 = presentations.some(p => p.label.startsWith('vec4'));
+        const hasHex = presentations.some(p => p.label.startsWith('#'));
+        const hasRgb = presentations.some(p => p.label.startsWith('rgb'));
+        
+        assert.ok(hasVec4, 'Should include vec4 format option');
+        assert.ok(hasHex, 'Should include hex format option');
+        assert.ok(hasRgb, 'Should include rgb format option');
     });
 
-    test('provideColorPresentations returns correct presentation for vec4 with clamping', () => {
-        // Create a dummy document where getText returns text starting with "vec4".
+    test('provideColorPresentations provides multiple format options for hex color', () => {
+        // Create a dummy document where getText returns a hex color.
         const dummyDocument = {
-            getText: (range: vscode.Range) => "vec4(0.5, 0.5, 0.5, 1.0)"
+            getText: (range: vscode.Range) => "#FF8000"
         } as unknown as vscode.TextDocument;
-        const range = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 25));
-        // Create a color with out-of-bound values to test clamping.
-        const color = new vscode.Color(1.1, 0.5, -0.2, 1.5);
+        const range = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 7));
+        // Create a color within range.
+        const color = new vscode.Color(1.0, 0.5, 0.0, 1.0);
         const context = { document: dummyDocument, range };
 
         const token = new vscode.CancellationTokenSource().token;
         const result = capturedProvider.provideColorPresentations(color, context, token);
         const presentations = result as vscode.ColorPresentation[];
-        assert.strictEqual(presentations.length, 1, 'Expected one color presentation');
-        assert.strictEqual(
-            presentations[0].label,
-            "vec4(1.000, 0.500, 0.000, 1.000)",
-            'Expected color presentation to be clamped correctly'
-        );
+        
+        // Should have multiple format options
+        assert.ok(presentations.length > 1, 'Expected multiple color presentations');
+        
+        // Check that we have different format options (vec3, vec4, hex, and rgb)
+        const hasVec3 = presentations.some(p => p.label.startsWith('vec3'));
+        const hasVec4 = presentations.some(p => p.label.startsWith('vec4'));
+        const hasHex = presentations.some(p => p.label.startsWith('#'));
+        const hasRgb = presentations.some(p => p.label.startsWith('rgb'));
+        
+        assert.ok(hasVec3, 'Should include vec3 format option');
+        assert.ok(hasVec4, 'Should include vec4 format option');
+        assert.ok(hasHex, 'Should include hex format option');
+        assert.ok(hasRgb, 'Should include rgb format option');
+    });
+
+    test('provideColorPresentations handles alpha transparency correctly', () => {
+        // Create a dummy document where getText returns a rgba color.
+        const dummyDocument = {
+            getText: (range: vscode.Range) => "rgba(255, 128, 0, 0.5)"
+        } as unknown as vscode.TextDocument;
+        const range = new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 22));
+        // Create a color with alpha.
+        const color = new vscode.Color(1.0, 0.5, 0.0, 0.5);
+        const context = { document: dummyDocument, range };
+
+        const token = new vscode.CancellationTokenSource().token;
+        const result = capturedProvider.provideColorPresentations(color, context, token);
+        const presentations = result as vscode.ColorPresentation[];
+        
+        // Should have options that include alpha
+        const hasVec4 = presentations.some(p => p.label.startsWith('vec4'));
+        const hasRgba = presentations.some(p => p.label.startsWith('rgba'));
+        const hasHexWithAlpha = presentations.some(p => p.label.startsWith('#') && p.label.length === 9);
+        
+        assert.ok(hasVec4, 'Should include vec4 format option for alpha');
+        assert.ok(hasRgba, 'Should include rgba format option');
+        assert.ok(hasHexWithAlpha, 'Should include hex format with alpha');
+        
+        // Find the rgba presentation and verify its format
+        const rgbaPresentation = presentations.find(p => p.label.startsWith('rgba'));
+        assert.ok(rgbaPresentation, 'Should have an rgba format option');
+        assert.strictEqual(rgbaPresentation?.label, 'rgba(255, 128, 0, 0.50)');
     });
 });
 

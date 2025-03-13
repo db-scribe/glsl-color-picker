@@ -2,7 +2,7 @@
   "name": "glsl-color-picker",
   "displayName": "glsl-color-picker",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/db-scribe/glsl-color-picker.git"
